@@ -999,8 +999,8 @@ def send_dolly_path():
 
     # Apply common adjustments.
     for pt in final_data:
-        pt["LookAtMeXOffset"] = 0.0
-        pt["LookAtMeYOffset"] = 0.0
+        pt["LookAtMeXOffset"] = lookat_x_offset
+        pt["LookAtMeYOffset"] = lookat_y_offset
         if dolly_mode != 5:
             pt["Zoom"] = dolly_zoom
         pt["Speed"] = dolly_speed
