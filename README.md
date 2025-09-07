@@ -1,3 +1,7 @@
+# Changes in this fork to the original
+
+I just added a few things that i personally was missing in the tool, like adding aperture and focal distance sliders, and changing the zoom min/max value. Everything else is still original by ChangaHusky!
+
 # VRChat Dolly Controller
 
 VRChat Dolly Controller is a Python-based tool that gives you full control over VRChat’s Dolly mode. Originally developed for my own filmmaking, this software is available for anyone who finds it useful.
