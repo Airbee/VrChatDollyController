@@ -109,6 +109,7 @@ dolly_settings = {
 dolly_zoom = 45.0
 dolly_speed = 3.0
 aperture = 15.0
+focal_distance = 2
 dolly_zoom_exaggeration = 2.0   # Range: 1.0 to 5.0
 user_points_limit = 15          # Range: 5 to 50
 dolly_mode = 1  # 1 = Circle, 2 = Line, 3 = Elliptical, 4 = File Mode, 5 = Dolly Zoom Mode
@@ -149,6 +150,8 @@ height_slider = None
 height_entry = None
 aperture_slider = None
 aperture_entry = None
+focal_distance_slider = None
+focal_distance_entry = None
 dz_exag_slider = None
 dz_exag_entry = None
 points_count_slider = None
@@ -359,6 +362,23 @@ def on_aperture_entry_return():
     except ValueError:
         pass
 
+def update_focal_distance_slider(value):
+    global focal_distance, focal_distance_entry
+    val = round(float(value) / 100, 2)
+    focal_distance = val
+    focal_distance_entry.setText(str(val))
+    regenerate_path()
+
+def on_focal_distance_entry_return():
+    global focal_distance, focal_distance_entry
+    try:
+        val = float(focal_distance_entry.text())
+        val = max(0.1, min(30, val))
+        focal_distance = val
+        regenerate_path()
+    except ValueError:
+        pass
+
 def update_radius_slider(value):
     global dolly_settings, radius_entry
     val = round(float(value) / 100, 2)
@@ -464,11 +484,47 @@ def update_radius_slider(value):
     radius_entry.setText(str(val))
     regenerate_path()
 
+def update_ui_after_pin():
+    update_radius_slider(dolly_settings["radius"])
+    # radius_entry.setText(str(dolly_settings["radius"]))
+
+    update_duration_slider(dolly_settings["duration"])
+    # duration_entry.setText(str(dolly_settings["duration"]))
+
+    update_height_slider(dolly_settings["height"])
+    # height_entry.setText(str(dolly_settings["height"]))
+
+    update_points_count_slider(dolly_settings["points"])
+    # points_count_entry.setText(str(dolly_settings["points"]))
+
+    update_zoom_slider(dolly_zoom)
+    # zoom_entry.setText(str(dolly_zoom))
+
+    update_speed_slider(dolly_speed)
+    # speed_entry.setText(str(dolly_speed))
+
+    update_aperture_slider(aperture)
+    # aperture_entry.setText(str(aperture))
+
+    update_focal_distance_slider(focal_distance)
+    # focal_distance_entry.setText(focal_distance)
+
+    update_translation_step_slider(translation_step_value)
+    # translation_step_entry.setText(str(translation_step_value))
+
+    update_rotation_step_slider(rotation_step_value)
+    # rotation_step_entry.setText(str(rotation_step_value))
+
+    update_arc_angle_slider(arc_angle)
+    # arc_angle_entry.setText(str(arc_angle))
+
+
+
 def on_zoom_entry_return():
     global dolly_zoom
     try:
         val = float(zoom_entry.text())
-        val = max(20.0, min(150.0, val))
+        val = max(20.0, min(300.0, val))
         zoom_slider.setValue(int(val))
         dolly_zoom = val
         if dolly_mode != 5:
@@ -584,6 +640,7 @@ def export_pin(pin_number):
          "speed": dolly_speed,
          "height": dolly_settings["height"],
          "aperture": aperture,
+         "focal_distance": focal_distance,
          "arc_angle": arc_angle,
          "num_points": user_points_limit,
          "translation_step": translation_step_value,
@@ -613,7 +670,7 @@ def load_pin(pin_number):
     Then regenerate the path so that these values take effect.
     """
     global start_position, exported_center, view_target, use_view_target
-    global dolly_settings, dolly_zoom, dolly_speed, aperture, arc_angle, user_points_limit
+    global dolly_settings, dolly_zoom, dolly_speed, aperture, focal_distance, arc_angle, user_points_limit
     global translation_step_value, rotation_step_value, camera_offset, camera_rotation_offset
 
     pin_file = os.path.join(PINS_PATH, f"pin{pin_number}.json")
@@ -645,12 +702,14 @@ def load_pin(pin_number):
             dolly_speed = settings.get("speed", dolly_speed)
             dolly_settings["height"] = settings.get("height", dolly_settings["height"])
             aperture = settings.get("aperture", aperture)
+            focal_distance = settings.get("focal_distance", focal_distance)
             arc_angle = settings.get("arc_angle", arc_angle)
             user_points_limit = settings.get("num_points", user_points_limit)
             translation_step_value = settings.get("translation_step", translation_step_value)
             rotation_step_value = settings.get("rotation_step", rotation_step_value)
         print(f"Loaded Pin {pin_number}:\n  Origin: {start_position}\n  Target: {view_target}\n  Camera Offset: {camera_offset}\n  Rotation Offset (Euler): {data.get('rotation_offset')}\n  Settings: {data.get('settings', {})}")
         regenerate_path()
+        # update_ui_after_pin()
     except Exception as e:
         QMessageBox.critical(None, "Pin Load Error", f"Error loading Pin {pin_number}: {e}")
 
@@ -686,13 +745,13 @@ def generate_circle_path():
         wp = {
             "Index": i,
             "PathIndex": 0,
-            "FocalDistance": 2.0,
+            "FocalDistance": focal_distance,
             "Aperture": aperture,
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": 0.0,
-            "LookAtMeYOffset": 0.0,
+            "LookAtMeXOffset": lookat_x_offset,
+            "LookAtMeYOffset": lookat_y_offset,
             "Zoom": dolly_zoom,
             "Speed": dolly_speed,
             "Duration": round((i / user_points_limit) * dolly_settings["duration"], 3),
@@ -747,9 +806,20 @@ def generate_arc_path():
         yaw = math.degrees(math.atan2(center["Z"] - z, center["X"] - x))
         wp = {
             "Index": i,
+            "PathIndex": 0,
+            "FocalDistance": focal_distance,
+            "Aperture": aperture,
+            "Hue": 120.0,
+            "Saturation": 100.0,
+            "Lightness": 50.0,
+            "LookAtMeXOffset": lookat_x_offset,
+            "LookAtMeYOffset": lookat_y_offset,
+            "Zoom": dolly_zoom,
+            "Speed": dolly_speed,
+            "Duration": round(t * dolly_settings["duration"], 3),
             "Position": {"X": round(x,3), "Y": round(y,3), "Z": round(z,3)},
             "Rotation": {"X": 0, "Y": round(yaw,2), "Z": 0},
-            # plus your other fields...
+            "islocal": is_local           
         }
         waypoints.append(wp)
     return waypoints
@@ -767,13 +837,13 @@ def generate_line_path():
         wp = {
             "Index": i,
             "PathIndex": 0,
-            "FocalDistance": 2.0,
+            "FocalDistance": focal_distance,
             "Aperture": aperture,
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": 0.0,
-            "LookAtMeYOffset": 0.0,
+            "LookAtMeXOffset": lookat_x_offset,
+            "LookAtMeYOffset": lookat_y_offset,
             "Zoom": dolly_zoom,
             "Speed": dolly_speed,
             "Duration": round(t * dolly_settings["duration"], 3),
@@ -796,13 +866,13 @@ def generate_elliptical_path():
         wp = {
             "Index": i,
             "PathIndex": 0,
-            "FocalDistance": 2.0,
+            "FocalDistance": focal_distance,
             "Aperture": aperture,
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": 0.0,
-            "LookAtMeYOffset": 0.0,
+            "LookAtMeXOffset": lookat_x_offset,
+            "LookAtMeYOffset": lookat_y_offset,
             "Zoom": dolly_zoom,
             "Speed": dolly_speed,
             "Duration": round((i / user_points_limit) * dolly_settings["duration"], 3),
@@ -835,6 +905,7 @@ def generate_loaded_path():
         wp["Zoom"] = dolly_zoom
         wp["Speed"] = dolly_speed
         wp["Aperture"] = aperture
+        wp["FocalDistance"] = focal_distance
         new_waypoints.append(wp)
     return new_waypoints
 
@@ -857,18 +928,18 @@ def generate_dolly_zoom_path():
         duration = round(t * dolly_settings["duration"], 3)
         current_distance = np.linalg.norm(target_vec - pos)
         new_zoom = initial_dolly_zoom * (current_distance / initial_distance) * dolly_zoom_exaggeration if initial_distance > 0 else initial_dolly_zoom
-        new_zoom = min(max(new_zoom, 40), 150)
+        new_zoom = min(max(new_zoom, 20), 300)
         euler = compute_look_at_unity(pos, target_vec, vertical_mode=False)
         wp = {
             "Index": i,
             "PathIndex": 0,
-            "FocalDistance": 2.0,
+            "FocalDistance": focal_distance,
             "Aperture": aperture,
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": 0.0,
-            "LookAtMeYOffset": 0.0,
+            "LookAtMeXOffset": lookat_x_offset,
+            "LookAtMeYOffset": lookat_y_offset,
             "Zoom": round(new_zoom, 2),
             "Speed": dolly_speed,
             "Duration": duration,
@@ -1137,7 +1208,7 @@ def toggle_use_view_target(val):
 def reset_to_defaults():
     global dolly_zoom, dolly_speed, lookat_x_offset, lookat_y_offset
     global camera_offset, camera_rotation_offset, dolly_vertical, dolly_pause
-    global translation_step_value, rotation_step_value, dolly_zoom_exaggeration, aperture, user_points_limit
+    global translation_step_value, rotation_step_value, dolly_zoom_exaggeration, aperture, focal_distance, user_points_limit
     dolly_settings["radius"] = 2.0
     dolly_settings["height"] = 0.0
     dolly_settings["duration"] = 2.0
@@ -1153,6 +1224,7 @@ def reset_to_defaults():
     rotation_step_value = 1.0
     dolly_zoom_exaggeration = 2.0
     aperture = 15.0
+    focal_distance = 2
     user_points_limit = 15
 
     radius_slider.setValue(int(dolly_settings["radius"] * 100))
@@ -1188,6 +1260,9 @@ def reset_to_defaults():
     aperture_slider.setValue(int(aperture * 100))
     aperture_entry.setText(str(aperture))
 
+    focal_distance_slider.setValue(int(aperture * 100))
+    focal_distance_entry.setText(str(aperture))
+
     points_count_slider.setValue(user_points_limit)
     points_count_entry.setText(str(user_points_limit))
 
@@ -1208,7 +1283,7 @@ class DollyControllerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("VRChat Dolly Controller V2.10")
-        self.setGeometry(100, 100, 800, 820)
+        self.setGeometry(-1000, 100, 800, 840)
         scroll = QScrollArea()
         self.central_widget = QWidget()
         self.setCentralWidget(scroll)
@@ -1354,7 +1429,7 @@ class DollyControllerWindow(QMainWindow):
         zoom_layout.addWidget(zoom_entry)
         zoom_slider = QSlider(Qt.Orientation.Horizontal)
         zoom_slider.setMinimum(20)
-        zoom_slider.setMaximum(150)
+        zoom_slider.setMaximum(300)
         zoom_slider.setValue(int(dolly_zoom))
         zoom_slider.valueChanged.connect(update_zoom_slider)
         zoom_layout.addWidget(zoom_slider)
@@ -1407,6 +1482,22 @@ class DollyControllerWindow(QMainWindow):
         aperture_slider.valueChanged.connect(update_aperture_slider)
         aperture_layout.addWidget(aperture_slider)
         self.main_layout.addLayout(aperture_layout)
+
+        # Focal Distance
+        focal_distance_layout = QHBoxLayout()
+        focal_distance_layout.addWidget(QLabel("Focal Distance:  "))
+        global focal_distance_entry, focal_distance_slider
+        focal_distance_entry = QLineEdit(str(focal_distance))
+        focal_distance_entry.setFixedSize(60, 25)
+        focal_distance_entry.editingFinished.connect(on_focal_distance_entry_return)
+        focal_distance_layout.addWidget(focal_distance_entry)
+        focal_distance_slider = QSlider(Qt.Orientation.Horizontal)
+        focal_distance_slider.setMinimum(10)
+        focal_distance_slider.setMaximum(3000)
+        focal_distance_slider.setValue(int(focal_distance * 100))
+        focal_distance_slider.valueChanged.connect(update_focal_distance_slider)
+        focal_distance_layout.addWidget(focal_distance_slider)
+        self.main_layout.addLayout(focal_distance_layout)
 
         # Arc Angle Control
         arc_angle_layout = QHBoxLayout()
@@ -1694,13 +1785,13 @@ class DollyControllerWindow(QMainWindow):
         target_point = {
             "Index": 0,
             "PathIndex": 0,
-            "FocalDistance": 2.0,
+            "FocalDistance": focal_distance,
             "Aperture": aperture,
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": 0.0,
-            "LookAtMeYOffset": 0.0,
+            "LookAtMeXOffset": lookat_x_offset,
+            "LookAtMeYOffset": lookat_y_offset,
             "Zoom": dolly_zoom,
             "Speed": dolly_speed,
             "Duration": 0,
@@ -1762,13 +1853,13 @@ class DollyControllerWindow(QMainWindow):
         path_point = {
             "Index": 0,
             "PathIndex": 0,
-            "FocalDistance": 2.0,
+            "FocalDistance": focal_distance,
             "Aperture": aperture,
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": 0.0,
-            "LookAtMeYOffset": 0.0,
+            "LookAtMeXOffset": lookat_x_offset,
+            "LookAtMeYOffset": lookat_y_offset,
             "Zoom": dolly_zoom,
             "Speed": dolly_speed,
             "Duration": 0,
