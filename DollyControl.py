@@ -484,41 +484,6 @@ def update_radius_slider(value):
     radius_entry.setText(str(val))
     regenerate_path()
 
-def update_ui_after_pin():
-    update_radius_slider(dolly_settings["radius"])
-    # radius_entry.setText(str(dolly_settings["radius"]))
-
-    update_duration_slider(dolly_settings["duration"])
-    # duration_entry.setText(str(dolly_settings["duration"]))
-
-    update_height_slider(dolly_settings["height"])
-    # height_entry.setText(str(dolly_settings["height"]))
-
-    update_points_count_slider(dolly_settings["points"])
-    # points_count_entry.setText(str(dolly_settings["points"]))
-
-    update_zoom_slider(dolly_zoom)
-    # zoom_entry.setText(str(dolly_zoom))
-
-    update_speed_slider(dolly_speed)
-    # speed_entry.setText(str(dolly_speed))
-
-    update_aperture_slider(aperture)
-    # aperture_entry.setText(str(aperture))
-
-    update_focal_distance_slider(focal_distance)
-    # focal_distance_entry.setText(focal_distance)
-
-    update_translation_step_slider(translation_step_value)
-    # translation_step_entry.setText(str(translation_step_value))
-
-    update_rotation_step_slider(rotation_step_value)
-    # rotation_step_entry.setText(str(rotation_step_value))
-
-    update_arc_angle_slider(arc_angle)
-    # arc_angle_entry.setText(str(arc_angle))
-
-
 
 def on_zoom_entry_return():
     global dolly_zoom
@@ -709,7 +674,6 @@ def load_pin(pin_number):
             rotation_step_value = settings.get("rotation_step", rotation_step_value)
         print(f"Loaded Pin {pin_number}:\n  Origin: {start_position}\n  Target: {view_target}\n  Camera Offset: {camera_offset}\n  Rotation Offset (Euler): {data.get('rotation_offset')}\n  Settings: {data.get('settings', {})}")
         regenerate_path()
-        # update_ui_after_pin()
     except Exception as e:
         QMessageBox.critical(None, "Pin Load Error", f"Error loading Pin {pin_number}: {e}")
 
@@ -750,8 +714,8 @@ def generate_circle_path():
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": lookat_x_offset,
-            "LookAtMeYOffset": lookat_y_offset,
+            "LookAtMeXOffset": 0.0,
+            "LookAtMeYOffset": 0.0,
             "Zoom": dolly_zoom,
             "Speed": dolly_speed,
             "Duration": round((i / user_points_limit) * dolly_settings["duration"], 3),
@@ -806,20 +770,9 @@ def generate_arc_path():
         yaw = math.degrees(math.atan2(center["Z"] - z, center["X"] - x))
         wp = {
             "Index": i,
-            "PathIndex": 0,
-            "FocalDistance": focal_distance,
-            "Aperture": aperture,
-            "Hue": 120.0,
-            "Saturation": 100.0,
-            "Lightness": 50.0,
-            "LookAtMeXOffset": lookat_x_offset,
-            "LookAtMeYOffset": lookat_y_offset,
-            "Zoom": dolly_zoom,
-            "Speed": dolly_speed,
-            "Duration": round(t * dolly_settings["duration"], 3),
             "Position": {"X": round(x,3), "Y": round(y,3), "Z": round(z,3)},
             "Rotation": {"X": 0, "Y": round(yaw,2), "Z": 0},
-            "islocal": is_local           
+            # plus your other fields...         
         }
         waypoints.append(wp)
     return waypoints
@@ -842,8 +795,8 @@ def generate_line_path():
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": lookat_x_offset,
-            "LookAtMeYOffset": lookat_y_offset,
+            "LookAtMeXOffset": 0.0,
+            "LookAtMeYOffset": 0.0,
             "Zoom": dolly_zoom,
             "Speed": dolly_speed,
             "Duration": round(t * dolly_settings["duration"], 3),
@@ -871,8 +824,8 @@ def generate_elliptical_path():
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": lookat_x_offset,
-            "LookAtMeYOffset": lookat_y_offset,
+            "LookAtMeXOffset": 0.0,
+            "LookAtMeYOffset": 0.0,
             "Zoom": dolly_zoom,
             "Speed": dolly_speed,
             "Duration": round((i / user_points_limit) * dolly_settings["duration"], 3),
@@ -938,8 +891,8 @@ def generate_dolly_zoom_path():
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": lookat_x_offset,
-            "LookAtMeYOffset": lookat_y_offset,
+            "LookAtMeXOffset": 0.0,
+            "LookAtMeYOffset": 0.0,
             "Zoom": round(new_zoom, 2),
             "Speed": dolly_speed,
             "Duration": duration,
@@ -1046,8 +999,8 @@ def send_dolly_path():
 
     # Apply common adjustments.
     for pt in final_data:
-        pt["LookAtMeXOffset"] = lookat_x_offset
-        pt["LookAtMeYOffset"] = lookat_y_offset
+        pt["LookAtMeXOffset"] = 0.0
+        pt["LookAtMeYOffset"] = 0.0
         if dolly_mode != 5:
             pt["Zoom"] = dolly_zoom
         pt["Speed"] = dolly_speed
@@ -1283,7 +1236,7 @@ class DollyControllerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("VRChat Dolly Controller V2.10")
-        self.setGeometry(-1000, 100, 800, 840)
+        self.setGeometry(100, 100, 800, 840)
         scroll = QScrollArea()
         self.central_widget = QWidget()
         self.setCentralWidget(scroll)
@@ -1790,8 +1743,8 @@ class DollyControllerWindow(QMainWindow):
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": lookat_x_offset,
-            "LookAtMeYOffset": lookat_y_offset,
+            "LookAtMeXOffset": 0.0,
+            "LookAtMeYOffset": 0.0,
             "Zoom": dolly_zoom,
             "Speed": dolly_speed,
             "Duration": 0,
@@ -1858,8 +1811,8 @@ class DollyControllerWindow(QMainWindow):
             "Hue": 120.0,
             "Saturation": 100.0,
             "Lightness": 50.0,
-            "LookAtMeXOffset": lookat_x_offset,
-            "LookAtMeYOffset": lookat_y_offset,
+            "LookAtMeXOffset": 0.0,
+            "LookAtMeYOffset": 0.0,
             "Zoom": dolly_zoom,
             "Speed": dolly_speed,
             "Duration": 0,
